@@ -7,7 +7,6 @@ test:
   stage: test
   image: python:3.8
   script:
-    - apt update && apt install -y libgl1
     - python3.8 -m venv venv
     - venv/bin/python -m pip install -r requirements-dev.txt
     - venv/bin/python -m pip install -e .[dev]
@@ -18,7 +17,9 @@ test:
     paths:
       - public
     reports:
-      cobertura: coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
       junit: report.xml
 
 
