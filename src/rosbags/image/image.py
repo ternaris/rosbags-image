@@ -153,7 +153,7 @@ def convert_color(src: Imagebytes, src_color_space: str, dst_color_space: str) -
         conversion = None
 
     if conversion:
-        src = cv2.cvtColor(src, conversion)  # pyright: ignore
+        src = cv2.cvtColor(src, conversion)  # pyright: ignore  # pylint: disable=no-member
 
     if src_typestr != dst_typestr:
         if src_depth == 8 and dst_depth == 16:
@@ -207,9 +207,9 @@ def compressed_image_to_cvimage(
         OpenCV image.
 
     """
-    img: Imagebytes = cv2.imdecode(  # pyright: ignore
+    img: Imagebytes = cv2.imdecode(  # pyright: ignore  # pylint: disable=no-member
         numpy.frombuffer(msg.data, numpy.uint8),
-        cv2.IMREAD_ANYCOLOR,  # pyright: ignore
+        cv2.IMREAD_ANYCOLOR,  # pyright: ignore  # pylint: disable=no-member
     )
     if color_space:
         return convert_color(img, 'bgr8', color_space)
