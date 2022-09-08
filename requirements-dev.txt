@@ -372,17 +372,17 @@ numpy==1.22.3 \
     --hash=sha256:fade0d4f4d292b6f39951b6836d7a3c7ef5b2347f3c420cd9820a1d90d794802 \
     --hash=sha256:fdf3c08bce27132395d3c3ba1503cac12e17282358cb4bddc25cc46b0aca07aa
     # via
-    #   opencv-python
+    #   opencv-python-headless
     #   rosbags
     #   rosbags-image (setup.cfg)
-opencv-python==4.5.5.64 \
-    --hash=sha256:408d5332550287aa797fd06bef47b2dfed163c6787668cc82ef9123a9484b56a \
-    --hash=sha256:6247e584813c00c3b9ed69a795da40d2c153dc923d0182e957e1c2f00a554ac2 \
-    --hash=sha256:7787bb017ae93d5f9bb1b817ac8e13e45dd193743cb648498fcab21d00cf20a3 \
-    --hash=sha256:a512a0c59b6fec0fac3844b2f47d6ecb1a9d18d235e6c5491ce8dbbe0663eae8 \
-    --hash=sha256:b293ced62f4360d9f11cf72ae7e9df95320ff7bf5b834d87546f844e838c0c35 \
-    --hash=sha256:ca6138b6903910e384067d001763d40f97656875487381aed32993b076f44375 \
-    --hash=sha256:f65de0446a330c3b773cd04ba10345d8ce1b15dcac3f49770204e37602d0b3f7
+opencv-python-headless==4.6.0.66 \
+    --hash=sha256:21e70f8b0c04098cdf466d27184fe6c3820aaef944a22548db95099959c95889 \
+    --hash=sha256:2c032c373e447c3fc2a670bca20e2918a1205a6e72854df60425fd3f82c78c32 \
+    --hash=sha256:3bacd806cce1f1988e58f3d6f761538e0215d6621d316de94c009dc0acbd6ad3 \
+    --hash=sha256:d5291d7e10aa2c19cab6fd86f0d61af8617290ecd2d7ffcb051e446868d04cc5 \
+    --hash=sha256:e6c069bc963d7e8fcec21b3e33e594d35948badd63eccb2e80f88b0a12102c03 \
+    --hash=sha256:eec6281054346103d6af93f173b7c6a206beb2663d3adc04aa3ddc66e85093df \
+    --hash=sha256:ffbf26fcd697af996408440a93bc69c49c05a36845771f984156dfbeaa95d497
     # via rosbags-image (setup.cfg)
 packaging==21.3 \
     --hash=sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb \
