@@ -1,3 +1,140 @@
 [build-system]
-requires = ["setuptools>=56.2.0", "wheel"]
+requires = ["setuptools>=68", "setuptools-scm[toml]"]
 build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "rosbags-image"
+authors = [
+  { name = "Ternaris", email = "team@ternaris.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+  "Typing :: Typed",
+]
+description = "Pure Python library to convert ros image message data from and to opencv2."
+dependencies = [
+  "numpy",
+  "opencv-python-headless",
+  "rosbags >= 0.9.20",
+]
+dynamic = ["version"]
+keywords = [
+  "conversion",
+  "cv_bridge",
+  "image",
+  "compressedimage",
+  "message",
+  "msg",
+  "opencv",
+  "ros",
+  "ros2",
+  "rosbag",
+  "rosbag1",
+  "rosbag2",
+  "rosbags",
+]
+license = { text = "Apache-2.0" }
+readme = "README.rst"
+requires-python = ">=3.8.2"
+
+[project.optional-dependencies]
+dev = [
+  "mypy",
+  "pytest",
+  "pytest-cov",
+  "reuse",
+  "ruff",
+  "sphinx",
+  "sphinx-autodoc-typehints",
+  "sphinx-rtd-theme",
+]
+
+[project.urls]
+Homepage = "https://gitlab.com/ternaris/rosbags-image"
+Documentation = "https://ternaris.gitlab.io/rosbags-image"
+Source = "https://gitlab.com/ternaris/rosbags-image"
+Issues = "https://gitlab.com/ternaris/rosbags-image/issues"
+Changelog = "https://gitlab.com/ternaris/rosbags-image/-/blob/master/CHANGES.rst"
+
+
+[tool.coverage]
+report.exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "if __name__ == '__main__':",
+]
+report.show_missing = true
+report.skip_covered = true
+run.branch = true
+run.source = ["src"]
+
+
+[tool.mypy]
+disallow_any_explicit = true
+explicit_package_bases = true
+mypy_path = "src"
+strict = true
+
+
+[tool.pytest.ini_options]
+addopts = ["--verbose"]
+
+
+[tool.ruff]
+line-length = 100
+namespace-packages = ["docs", "docs/examples", "tools/bench", "tools/compare"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = [
+  "ALL",
+  "D204",
+  "D400",
+  "D401",
+  "D404",
+  "D413",
+]
+ignore = [
+  "ANN101",
+  "C901",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
+  "PLR2004",
+  # allow asserts
+  "S101",
+  # trailing comma
+  "COM812",
+  # single line string concat
+  "ISC001",
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+known-first-party = ["rosbags"]
+
+[tool.ruff.lint.flake8-copyright]
+notice-rgx = "(?i)# (C)opyright 2020 - 2024 Ternaris\n# (S)PDX-License-Identifier: Apache-2.0"
+
+[tool.ruff.lint.flake8-quotes]
+avoid-escape = false
+inline-quotes = "single"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+
+[tool.setuptools_scm]
