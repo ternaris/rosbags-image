@@ -1,5 +1,5 @@
-# Copyright 2020  Ternaris.
-# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright 2020 - 2024 Ternaris
+# SPDX-License-Identifier: Apache-2.0
 """Rosbags image tests."""
 
 from __future__ import annotations
@@ -8,15 +8,10 @@ import struct
 import sys
 from base64 import b64decode
 from itertools import product
-from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-import numpy
+import numpy as np
 import pytest
-from rosbags.typesys.types import builtin_interfaces__msg__Time as Time
-from rosbags.typesys.types import sensor_msgs__msg__CompressedImage as CompressedImage
-from rosbags.typesys.types import sensor_msgs__msg__Image as Image
-from rosbags.typesys.types import std_msgs__msg__Header as Header
 
 from rosbags.image import (
     ImageConversionError,
@@ -25,9 +20,12 @@ from rosbags.image import (
     image_to_cvimage,
     message_to_cvimage,
 )
-
-if TYPE_CHECKING:
-    from typing import Any, Union
+from rosbags.typesys.stores.latest import (
+    builtin_interfaces__msg__Time as Time,
+    sensor_msgs__msg__CompressedImage as CompressedImage,
+    sensor_msgs__msg__Image as Image,
+    std_msgs__msg__Header as Header,
+)
 
 FORMATS = [
     'rgb8',
@@ -96,18 +94,17 @@ def get_desc(name: str) -> tuple[int, int, bool]:
         ValueError: If encoding unknown.
 
     """
-    if name[0:4] in ('rgba', 'bgra') or name.endswith('C4'):
+    if name[0:4] in {'rgba', 'bgra'} or name.endswith('C4'):
         channels = 4
-    elif name[0:3] in ('rgb', 'bgr') or name.endswith('C3'):
+    elif name[0:3] in {'rgb', 'bgr'} or name.endswith('C3'):
         channels = 3
     elif name.endswith('C2') or name == 'yuv422':
         channels = 2
-    elif (  # noqa: SIM106
-        name.startswith('mono') or name.startswith('bayer_') or name[-1] in 'USF1'
-    ):
+    elif name.startswith(('mono', 'bayer_')) or name[-1] in 'USF1':
         channels = 1
     else:
-        raise ValueError(f'Unexpected encoding {name}')
+        msg = f'Unexpected encoding {name}'
+        raise ValueError(msg)
 
     if name.startswith('8') or name.endswith('8') or name == 'yuv422':
         bits = 8
@@ -115,18 +112,20 @@ def get_desc(name: str) -> tuple[int, int, bool]:
         bits = 16
     elif name.startswith('32'):
         bits = 32
-    elif name.startswith('64'):  # noqa: SIM106
+    elif name.startswith('64'):
         bits = 64
     else:
-        raise ValueError(f'Unexpected encoding {name}')
+        msg = f'Unexpected encoding {name}'
+        raise ValueError(msg)
 
     return (channels, bits, 'FC' in name)
 
 
 def generate_image(
     fmt: str,
+    *,
     is_big: bool = sys.byteorder != 'little',
-) -> tuple[Image, int, Union[int, numpy.ndarray[Any, numpy.dtype[numpy.uint8]]]]:
+) -> tuple[Image, int, int | np.ndarray[None, np.dtype[np.uint8]]]:
     """Generate ROS image message for specific format.
 
     Args:
@@ -147,21 +146,25 @@ def generate_image(
     data = bytearray(height * step)
     pxpos = step * int(height / 2 - 1) + pxsize * int(width / 2 - 1)
     ftype = {True: {32: 'f', 64: 'd'}, False: {8: 'B', 16: 'H', 32: 'I', 64: 'Q'}}[is_float][bits]
-    cval = (1 << bits - 2)
-    data[pxpos:pxpos + bits >> 8] = struct.pack(f'{">" if is_big else "<"}{ftype}', cval)
+    cval: int | np.ndarray[None, np.dtype[np.uint8]] = 1 << min(32, bits) - 2
+    data[pxpos : pxpos + bits >> 8] = struct.pack(f'{">" if is_big else "<"}{ftype}', cval)
 
     # set remaining channels to 0, tests use this source value to check encoding conversions
-    val = cval if channels == 1 else numpy.array([cval] + [0] * (channels - 1))
+    val = cval if channels == 1 else np.array([cval] + [0] * (channels - 1))
 
-    return Image(
-        header=HEADER,
-        height=height,
-        width=width,
-        encoding=fmt,
-        is_bigendian=is_big,
-        step=step,
-        data=numpy.frombuffer(data, numpy.uint8),  # type: ignore
-    ), bits, val
+    return (
+        Image(
+            header=HEADER,
+            height=height,
+            width=width,
+            encoding=fmt,
+            is_bigendian=is_big,
+            step=step,
+            data=np.frombuffer(data, np.uint8),
+        ),
+        bits,
+        val,
+    )
 
 
 def test_badencoding() -> None:
@@ -178,9 +181,9 @@ def test_noconvert(fmt: str) -> None:
     image, _, val = generate_image(fmt)
     img = image_to_cvimage(image, color_space=None)
     assert img.shape[0:2] == (image.height, image.width)
-    numpy.testing.assert_array_equal(
+    np.testing.assert_array_equal(
         img[11:13, 15:17],
-        [[val, val * 0], [val * 0, val * 0]],  # type: ignore
+        [[val, val * 0], [val * 0, val * 0]],  # type: ignore[arg-type]
     )
 
 
@@ -190,7 +193,7 @@ def test_convert_mono(fmt: str) -> None:
     image, bits, val = generate_image(fmt)
 
     # unsupported auto conversions
-    if fmt[-2:] in ('C2', 'C3', 'C4', '22'):
+    if fmt[-2:] in {'C2', 'C3', 'C4', '22'}:
         with pytest.raises(ImageConversionError):
             image_to_cvimage(image, 'mono8')
         return
@@ -200,10 +203,10 @@ def test_convert_mono(fmt: str) -> None:
 
     # apply CCIR 601
     if fmt.startswith('rgb'):
-        assert isinstance(val, numpy.ndarray)
+        assert isinstance(val, np.ndarray)
         val = int(val[0] * 0.2989)
     elif fmt.startswith('bgr'):
-        assert isinstance(val, numpy.ndarray)
+        assert isinstance(val, np.ndarray)
         val = int(val[0] * 0.1140)
 
     # 16 bits are autoscaled down, higher bits do not fit into uint8
@@ -222,16 +225,16 @@ def test_convert_mono(fmt: str) -> None:
         assert isinstance(val, int)
         expect = [[val, val * 0], [val * 0, val * 0]]
 
-    numpy.testing.assert_array_equal(img[11:13, 15:17], numpy.array(expect))
+    np.testing.assert_array_equal(img[11:13, 15:17], np.array(expect))
 
 
 @pytest.mark.parametrize(('fmt', 'endian'), product(FORMATS, (False, True)))
-def test_convert_bgr8(fmt: str, endian: bool) -> None:
+def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
     """Test with color format conversion to bgr8."""
-    image, bits, val = generate_image(fmt, endian)
+    image, bits, val = generate_image(fmt, is_big=endian)
 
     # unsupported auto conversions
-    if fmt[-2:] in ('C1', 'C2', 'C4') or fmt[-1] in 'USF':
+    if fmt[-2:] in {'C1', 'C2', 'C4'} or fmt[-1] in 'USF':
         with pytest.raises(ImageConversionError):
             image_to_cvimage(image, 'bgr8')
         return
@@ -241,18 +244,20 @@ def test_convert_bgr8(fmt: str, endian: bool) -> None:
 
     # flip rgb, remove alpha, expand mono
     if fmt.startswith('rgb'):
-        val = numpy.flip(val[:3])  # type: ignore
+        assert isinstance(val, np.ndarray)
+        val = np.flip(val[:3])
     elif fmt.startswith('bgr'):
-        assert isinstance(val, numpy.ndarray)
+        assert isinstance(val, np.ndarray)
         val = val[:3]
     elif fmt.startswith('mono'):
         assert isinstance(val, int)
-        val = numpy.array([val, val, val])
+        val = np.array([val, val, val])
 
     if bits == 16 and not isinstance(val, int):
-        val = numpy.divide(val, 257.).astype(int)
+        val = np.divide(val, 257.0).astype(int)
     elif bits > 16:
-        val = val * 0
+        assert isinstance(val, np.ndarray)
+        val.fill(0)
     if fmt.startswith('bayer_rggb'):
         expect = [
             [[64 - (bits == 16), 0, 0], [32 - (bits == 16), 0, 0]],
@@ -271,20 +276,20 @@ def test_convert_bgr8(fmt: str, endian: bool) -> None:
     elif fmt == 'yuv422':
         expect = [[[0, 102, 0], [0, 154, 0]], [[0, 154, 0], [0, 154, 0]]]
     else:
-        assert isinstance(val, numpy.ndarray)
-        zero = numpy.multiply(val, 0).tolist()
+        assert isinstance(val, np.ndarray)
+        zero = np.multiply(val, 0).tolist()
         expect = [[val.tolist(), zero], [zero, zero]]
 
-    numpy.testing.assert_array_equal(img[11:13, 15:17], expect)
+    np.testing.assert_array_equal(img[11:13, 15:17], expect)
 
 
 @pytest.mark.parametrize(('fmt', 'endian'), product(FORMATS, (False, True)))
-def test_convert_bgr16(fmt: str, endian: bool) -> None:
+def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
     """Test with color format conversion to bgr8."""
-    image, bits, val = generate_image(fmt, endian)
+    image, bits, val = generate_image(fmt, is_big=endian)
 
     # unsupported auto conversions
-    if fmt[-2:] in ('C1', 'C2', 'C4') or fmt[-1] in 'USF':
+    if fmt[-2:] in {'C1', 'C2', 'C4'} or fmt[-1] in 'USF':
         with pytest.raises(ImageConversionError):
             image_to_cvimage(image, 'bgr16')
         return
@@ -294,18 +299,20 @@ def test_convert_bgr16(fmt: str, endian: bool) -> None:
 
     # flip rgb, remove alpha, expand mono
     if fmt.startswith('rgb'):
-        val = numpy.flip(val[:3])  # type: ignore
+        assert isinstance(val, np.ndarray)
+        val = np.flip(val[:3])
     elif fmt.startswith('bgr'):
-        assert isinstance(val, numpy.ndarray)
+        assert isinstance(val, np.ndarray)
         val = val[:3]
     elif fmt.startswith('mono'):
         assert isinstance(val, int)
-        val = numpy.array([val, val, val])
+        val = np.array([val, val, val])
 
     if bits == 8 and not isinstance(val, int):
-        val = numpy.multiply(val, 257.).astype(int)
+        val = np.multiply(val, 257.0).astype(int)
     elif bits > 16:
-        val = val * 0
+        assert isinstance(val, np.ndarray)
+        val.fill(0)
     if fmt.startswith('bayer_rggb'):
         expect = [
             [[16448 - (bits == 16) * 64, 0, 0], [8224 - (bits == 16) * 32, 0, 0]],
@@ -324,11 +331,11 @@ def test_convert_bgr16(fmt: str, endian: bool) -> None:
     elif fmt == 'yuv422':
         expect = [[[0, 26214, 0], [0, 39578, 0]], [[0, 39578, 0], [0, 39578, 0]]]
     else:
-        assert isinstance(val, numpy.ndarray)
-        zero = numpy.multiply(val, 0).tolist()
+        assert isinstance(val, np.ndarray)
+        zero = np.multiply(val, 0).tolist()
         expect = [[val.tolist(), zero], [zero, zero]]
 
-    numpy.testing.assert_array_equal(img[11:13, 15:17], expect)
+    np.testing.assert_array_equal(img[11:13, 15:17], expect)
 
 
 def test_compressed_png() -> None:
@@ -336,25 +343,25 @@ def test_compressed_png() -> None:
     image = CompressedImage(
         HEADER,
         'png',
-        numpy.frombuffer(
+        np.frombuffer(
             b64decode(
                 """
                 iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9
                 awAAAABJRU5ErkJggg==
                 """,
             ),
-            dtype=numpy.uint8,
+            dtype=np.uint8,
         ),
     )
 
     img = compressed_image_to_cvimage(image)
-    numpy.testing.assert_array_equal(img, numpy.array([[[0, 255, 0]]]))
+    np.testing.assert_array_equal(img, np.array([[[0, 255, 0]]]))
 
     img = compressed_image_to_cvimage(image, 'bgr8')
-    numpy.testing.assert_array_equal(img, numpy.array([[[0, 255, 0]]]))
+    np.testing.assert_array_equal(img, np.array([[[0, 255, 0]]]))
 
     img = compressed_image_to_cvimage(image, 'mono8')
-    numpy.testing.assert_array_equal(img, numpy.array([[150]]))
+    np.testing.assert_array_equal(img, np.array([[150]]))
 
 
 def test_compressed_jpg() -> None:
@@ -362,18 +369,18 @@ def test_compressed_jpg() -> None:
     image = CompressedImage(
         HEADER,
         'jpeg',
-        numpy.frombuffer(
+        np.frombuffer(
             b64decode(
                 """
                 /9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8Q
                 EBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=
                 """,
             ),
-            dtype=numpy.uint8,
+            dtype=np.uint8,
         ),
     )
     img = compressed_image_to_cvimage(image, 'bgr8')
-    numpy.testing.assert_array_equal(img, numpy.array([[190]]))
+    np.testing.assert_array_equal(img, np.array([[190]]))
 
 
 def test_type_detection() -> None:
@@ -381,11 +388,11 @@ def test_type_detection() -> None:
     cimage = CompressedImage(
         HEADER,
         'jpeg',
-        numpy.array([]),
+        np.array([]),
     )
     with patch('rosbags.image.image.compressed_image_to_cvimage') as mock:
         message_to_cvimage(cimage, 'bgr8')
-        assert mock.called_with(cimage, 'bgr8')
+        mock.assert_called_with(cimage, 'bgr8')
 
     image = Image(
         header=HEADER,
@@ -394,8 +401,8 @@ def test_type_detection() -> None:
         encoding='',
         is_bigendian=False,
         step=-1,
-        data=numpy.array([]),
+        data=np.array([]),
     )
     with patch('rosbags.image.image.image_to_cvimage') as mock:
         message_to_cvimage(image, 'bgr8')
-        assert mock.called_with(image, 'bgr8')
+        mock.assert_called_with(image, 'bgr8')

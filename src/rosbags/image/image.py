@@ -1,4 +1,4 @@
-# Copyright 2019-2022  Ternaris.
+# Copyright 2020 - 2024 Ternaris
 # SPDX-License-Identifier: Apache-2.0
 """Image conversion between ROS and OpenCV formats."""
 
@@ -9,21 +9,18 @@ import sys
 from contextlib import suppress
 from enum import IntEnum
 from itertools import product
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-import cv2  # type: ignore
-import numpy
-from rosbags.typesys.types import sensor_msgs__msg__CompressedImage as CompressedImage
+import cv2
+import numpy as np
 
 if TYPE_CHECKING:
-    from typing import Any, Optional, Union
+    from rosbags.typesys.stores.latest import (
+        sensor_msgs__msg__CompressedImage as CompressedImage,
+        sensor_msgs__msg__Image as Image,
+    )
 
-    if sys.version_info < (3, 9):
-        Imagebytes = numpy.ndarray[Any, Any]
-    else:
-        from numpy.typing import NDArray
-        Imagebytes = NDArray[Any]
-    from rosbags.typesys.types import sensor_msgs__msg__Image as Image
+    Imagebytes = np.ndarray[None, np.dtype[np.generic]]
 
 ENC_RE = re.compile('(8U|8S|16U|16S|32S|32F|64F)(?:C([0-9]+))?')
 DIGITS_RE = re.compile(r'^\d+')
@@ -118,7 +115,8 @@ def to_cvtype(encoding: str) -> tuple[int, Format, str, int]:
         assert mat
         return (int(mat.group()), Format.GENERIC, DEPTHMAP[depth], int(nchan or 1))
 
-    raise ImageFormatError(f'Format {encoding!r} is not supported')
+    msg = f'Format {encoding!r} is not supported'
+    raise ImageFormatError(msg)
 
 
 def convert_color(src: Imagebytes, src_color_space: str, dst_color_space: str) -> Imagebytes:
@@ -146,31 +144,24 @@ def convert_color(src: Imagebytes, src_color_space: str, dst_color_space: str) -
     try:
         conversion = CONVERSIONS[(src_fmt, dst_fmt)]
     except KeyError:
-        if Format.GENERIC not in (src_fmt, dst_fmt) or src_nchan != dst_nchan:
-            raise ImageConversionError(
-                f'Conversion {src_color_space!r} -> {dst_color_space!r} is not supported',
-            ) from None
+        if Format.GENERIC not in {src_fmt, dst_fmt} or src_nchan != dst_nchan:
+            msg = f'Conversion {src_color_space!r} -> {dst_color_space!r} is not supported'
+            raise ImageConversionError(msg) from None
         conversion = None
 
     if conversion:
-        src = cv2.cvtColor(src, conversion)  # pyright: ignore  # pylint: disable=no-member
+        src = cv2.cvtColor(src, conversion)
 
     if src_typestr != dst_typestr:
         if src_depth == 8 and dst_depth == 16:
-            return numpy.multiply(  # type: ignore
-                src.astype(dst_typestr, copy=False),
-                65535. / 255.,
-            )
+            return np.multiply(src.astype(dst_typestr, copy=False), 65535.0 / 255.0)
         if src_depth == 16 and dst_depth == 8:
-            return numpy.multiply(  # type: ignore
-                src,
-                255. / 65535.,
-            ).astype(dst_typestr, copy=False)
+            return np.multiply(src, 255.0 / 65535.0).astype(dst_typestr, copy=False)
         return src.astype(dst_typestr, copy=False)
     return src
 
 
-def image_to_cvimage(msg: Image, color_space: Optional[str] = None) -> Imagebytes:
+def image_to_cvimage(msg: Image, color_space: str | None = None) -> Imagebytes:
     """Convert sensor_msg/msg/Image to OpenCV image.
 
     Args:
@@ -183,8 +174,8 @@ def image_to_cvimage(msg: Image, color_space: Optional[str] = None) -> Imagebyte
     """
     _, _, typestr, nchan = to_cvtype(msg.encoding)
     shape = (msg.height, msg.width) if nchan == 1 else (msg.height, msg.width, nchan)
-    dtype = numpy.dtype(typestr)  # .newbyteorder('>' if msg.is_bigendian else '<')
-    img: Imagebytes = numpy.ndarray(shape=shape, dtype=dtype, buffer=msg.data)
+    dtype = np.dtype(typestr)  # .newbyteorder('>' if msg.is_bigendian else '<')
+    img: Imagebytes = np.ndarray(shape=shape, dtype=dtype, buffer=msg.data)
     if msg.is_bigendian != (sys.byteorder != 'little'):
         img.byteswap(inplace=True)
 
@@ -195,7 +186,7 @@ def image_to_cvimage(msg: Image, color_space: Optional[str] = None) -> Imagebyte
 
 def compressed_image_to_cvimage(
     msg: CompressedImage,
-    color_space: Optional[str] = None,
+    color_space: str | None = None,
 ) -> Imagebytes:
     """Convert sensor_msg/msg/CompressedImage to OpenCV image.
 
@@ -207,18 +198,15 @@ def compressed_image_to_cvimage(
         OpenCV image.
 
     """
-    img: Imagebytes = cv2.imdecode(  # pyright: ignore  # pylint: disable=no-member
-        numpy.frombuffer(msg.data, numpy.uint8),
-        cv2.IMREAD_ANYCOLOR,  # pyright: ignore  # pylint: disable=no-member
-    )
+    img: Imagebytes = cv2.imdecode(np.frombuffer(msg.data, np.uint8), cv2.IMREAD_ANYCOLOR)
     if color_space:
         return convert_color(img, 'bgr8', color_space)
     return img
 
 
 def message_to_cvimage(
-    msg: Union[CompressedImage, Image],
-    color_space: Optional[str] = None,
+    msg: CompressedImage | Image,
+    color_space: str | None = None,
 ) -> Imagebytes:
     """Convert ROS message to OpenCV image.
 
@@ -230,6 +218,6 @@ def message_to_cvimage(
         OpenCV image.
 
     """
-    if isinstance(msg, CompressedImage):
-        return compressed_image_to_cvimage(msg, color_space)
+    if hasattr(msg, 'format'):
+        return compressed_image_to_cvimage(cast('CompressedImage', msg), color_space)
     return image_to_cvimage(msg, color_space)

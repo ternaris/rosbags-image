@@ -1,3 +1,3 @@
-# Copyright 2020-2022  Ternaris.
+# Copyright 2020 - 2024 Ternaris
 # SPDX-License-Identifier: Apache-2.0
 """Rosbags image tests."""
