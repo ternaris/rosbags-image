@@ -177,7 +177,7 @@ def image_to_cvimage(msg: Image, color_space: str | None = None) -> Imagebytes:
     dtype = np.dtype(typestr)  # .newbyteorder('>' if msg.is_bigendian else '<')
     img: Imagebytes = np.ndarray(shape=shape, dtype=dtype, buffer=msg.data)
     if msg.is_bigendian != (sys.byteorder != 'little'):
-        img.byteswap(inplace=True)
+        img = img.byteswap()
 
     if color_space:
         return convert_color(img, msg.encoding, color_space)
