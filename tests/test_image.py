@@ -8,6 +8,7 @@ import struct
 import sys
 from base64 import b64decode
 from itertools import product
+from typing import cast
 from unittest.mock import patch
 
 import numpy as np
@@ -172,7 +173,7 @@ def test_badencoding() -> None:
     image, _, _ = generate_image('mono8')
     image.encoding = 'bayer'
     with pytest.raises(ImageFormatError, match='bayer'):
-        image_to_cvimage(image)
+        _ = image_to_cvimage(image)
 
 
 @pytest.mark.parametrize('fmt', FORMATS)
@@ -181,10 +182,9 @@ def test_noconvert(fmt: str) -> None:
     image, _, val = generate_image(fmt)
     img = image_to_cvimage(image, color_space=None)
     assert img.shape[0:2] == (image.height, image.width)
-    np.testing.assert_array_equal(
-        img[11:13, 15:17],
-        [[val, val * 0], [val * 0, val * 0]],  # type: ignore[arg-type]
-    )
+    xval = val if isinstance(val, int) else val.tolist()
+    zeros = 0 if isinstance(val, int) else (val * 0).tolist()
+    np.testing.assert_array_equal(img[11:13, 15:17], [[xval, zeros], [zeros, zeros]])
 
 
 @pytest.mark.parametrize('fmt', FORMATS)
@@ -195,7 +195,7 @@ def test_convert_mono(fmt: str) -> None:
     # unsupported auto conversions
     if fmt[-2:] in {'C2', 'C3', 'C4', '22'}:
         with pytest.raises(ImageConversionError):
-            image_to_cvimage(image, 'mono8')
+            _ = image_to_cvimage(image, 'mono8')
         return
 
     img = image_to_cvimage(image, 'mono8')
@@ -204,10 +204,10 @@ def test_convert_mono(fmt: str) -> None:
     # apply CCIR 601
     if fmt.startswith('rgb'):
         assert isinstance(val, np.ndarray)
-        val = int(val[0] * 0.2989)
+        val = int(cast('int', val[0]) * 0.2989)
     elif fmt.startswith('bgr'):
         assert isinstance(val, np.ndarray)
-        val = int(val[0] * 0.1140)
+        val = int(cast('int', val[0]) * 0.1140)
 
     # 16 bits are autoscaled down, higher bits do not fit into uint8
     if bits == 16:
@@ -236,7 +236,7 @@ def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
     # unsupported auto conversions
     if fmt[-2:] in {'C1', 'C2', 'C4'} or fmt[-1] in 'USF':
         with pytest.raises(ImageConversionError):
-            image_to_cvimage(image, 'bgr8')
+            _ = image_to_cvimage(image, 'bgr8')
         return
 
     img = image_to_cvimage(image, 'bgr8')
@@ -277,7 +277,7 @@ def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
         expect = [[[0, 102, 0], [0, 154, 0]], [[0, 154, 0], [0, 154, 0]]]
     else:
         assert isinstance(val, np.ndarray)
-        zero = np.multiply(val, 0).tolist()
+        zero: list[int] = np.multiply(val, 0).tolist()
         expect = [[val.tolist(), zero], [zero, zero]]
 
     np.testing.assert_array_equal(img[11:13, 15:17], expect)
@@ -291,7 +291,7 @@ def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
     # unsupported auto conversions
     if fmt[-2:] in {'C1', 'C2', 'C4'} or fmt[-1] in 'USF':
         with pytest.raises(ImageConversionError):
-            image_to_cvimage(image, 'bgr16')
+            _ = image_to_cvimage(image, 'bgr16')
         return
 
     img = image_to_cvimage(image, 'bgr16')
@@ -332,7 +332,7 @@ def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
         expect = [[[0, 26214, 0], [0, 39578, 0]], [[0, 39578, 0], [0, 39578, 0]]]
     else:
         assert isinstance(val, np.ndarray)
-        zero = np.multiply(val, 0).tolist()
+        zero: list[int] = np.multiply(val, 0).tolist()
         expect = [[val.tolist(), zero], [zero, zero]]
 
     np.testing.assert_array_equal(img[11:13, 15:17], expect)
@@ -391,7 +391,7 @@ def test_type_detection() -> None:
         np.array([]),
     )
     with patch('rosbags.image.image.compressed_image_to_cvimage') as mock:
-        message_to_cvimage(cimage, 'bgr8')
+        _ = message_to_cvimage(cimage, 'bgr8')
         mock.assert_called_with(cimage, 'bgr8')
 
     image = Image(
@@ -404,5 +404,5 @@ def test_type_detection() -> None:
         data=np.array([]),
     )
     with patch('rosbags.image.image.image_to_cvimage') as mock:
-        message_to_cvimage(image, 'bgr8')
+        _ = message_to_cvimage(image, 'bgr8')
         mock.assert_called_with(image, 'bgr8')

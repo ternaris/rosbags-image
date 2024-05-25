@@ -15,6 +15,8 @@ import cv2
 import numpy as np
 
 if TYPE_CHECKING:
+    from typing import TypeGuard
+
     from rosbags.typesys.stores.latest import (
         sensor_msgs__msg__CompressedImage as CompressedImage,
         sensor_msgs__msg__Image as Image,
@@ -54,11 +56,12 @@ class Format(IntEnum):
     BAYER_GR = 9
 
 
-CONVERSIONS = {
-    key: getattr(cv2, f'COLOR_{n1}2{n2}{({"YUV": "_Y422"}).get(n1, "")}', None)
-    for key in product(*(2 * (list(Format)[1:],)))
+CONVERSIONS: dict[tuple[Format, Format], int | None] = {
+    key: cast('int', getattr(cv2, f'COLOR_{n1}2{n2}{({"YUV": "_Y422"}).get(n1, "")}', None))
+    for key in product(list(Format)[1:], list(Format)[1:])
     if (n1 := key[0].name) == (n2 := key[1].name) or hasattr(cv2, f'COLOR_{n1}2{n2}')
 }
+
 
 DEPTHMAP = {
     '8U': 'uint8',
@@ -204,6 +207,11 @@ def compressed_image_to_cvimage(
     return img
 
 
+def is_compressed(msg: CompressedImage | Image) -> TypeGuard[CompressedImage]:
+    """Check if message is CompressedImage."""
+    return hasattr(msg, 'format')
+
+
 def message_to_cvimage(
     msg: CompressedImage | Image,
     color_space: str | None = None,
@@ -218,6 +226,6 @@ def message_to_cvimage(
         OpenCV image.
 
     """
-    if hasattr(msg, 'format'):
-        return compressed_image_to_cvimage(cast('CompressedImage', msg), color_space)
-    return image_to_cvimage(msg, color_space)
+    if is_compressed(msg):
+        return compressed_image_to_cvimage(msg, color_space)
+    return image_to_cvimage(cast('Image', msg), color_space)
