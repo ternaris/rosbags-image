@@ -17,12 +17,14 @@ import numpy as np
 if TYPE_CHECKING:
     from typing import TypeGuard
 
+    from cv2.typing import MatLike
+
     from rosbags.typesys.stores.latest import (
         sensor_msgs__msg__CompressedImage as CompressedImage,
         sensor_msgs__msg__Image as Image,
     )
 
-    Imagebytes = np.ndarray[None, np.dtype[np.generic]]
+    Imagebytes = MatLike
 
 ENC_RE = re.compile('(8U|8S|16U|16S|32S|32F|64F)(?:C([0-9]+))?')
 DIGITS_RE = re.compile(r'^\d+')

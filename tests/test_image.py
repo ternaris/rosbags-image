@@ -126,7 +126,7 @@ def generate_image(
     fmt: str,
     *,
     is_big: bool = sys.byteorder != 'little',
-) -> tuple[Image, int, int | np.ndarray[None, np.dtype[np.uint8]]]:
+) -> tuple[Image, int, int | np.ndarray[tuple[int, ...], np.dtype[np.uint8]]]:
     """Generate ROS image message for specific format.
 
     Args:
@@ -147,7 +147,7 @@ def generate_image(
     data = bytearray(height * step)
     pxpos = step * int(height / 2 - 1) + pxsize * int(width / 2 - 1)
     ftype = {True: {32: 'f', 64: 'd'}, False: {8: 'B', 16: 'H', 32: 'I', 64: 'Q'}}[is_float][bits]
-    cval: int | np.ndarray[None, np.dtype[np.uint8]] = 1 << min(32, bits) - 2
+    cval: int | np.ndarray[tuple[int, ...], np.dtype[np.uint8]] = 1 << min(32, bits) - 2
     data[pxpos : pxpos + bits >> 8] = struct.pack(f'{">" if is_big else "<"}{ftype}', cval)
 
     # set remaining channels to 0, tests use this source value to check encoding conversions
@@ -277,8 +277,8 @@ def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
         expect = [[[0, 102, 0], [0, 154, 0]], [[0, 154, 0], [0, 154, 0]]]
     else:
         assert isinstance(val, np.ndarray)
-        zero: list[int] = np.multiply(val, 0).tolist()
-        expect = [[val.tolist(), zero], [zero, zero]]
+        zero = cast('list[int]', np.multiply(val, 0).tolist())
+        expect = [[cast('list[int]', val.tolist()), zero], [zero, zero]]
 
     np.testing.assert_array_equal(img[11:13, 15:17], expect)
 
@@ -332,8 +332,8 @@ def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
         expect = [[[0, 26214, 0], [0, 39578, 0]], [[0, 39578, 0], [0, 39578, 0]]]
     else:
         assert isinstance(val, np.ndarray)
-        zero: list[int] = np.multiply(val, 0).tolist()
-        expect = [[val.tolist(), zero], [zero, zero]]
+        zero = cast('list[int]', np.multiply(val, 0).tolist())
+        expect = [[cast('list[int]', val.tolist()), zero], [zero, zero]]
 
     np.testing.assert_array_equal(img[11:13, 15:17], expect)
 
