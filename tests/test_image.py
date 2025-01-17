@@ -216,11 +216,11 @@ def test_convert_mono(fmt: str) -> None:
         val = 0
 
     if fmt.startswith('bayer_rggb'):
-        expect = [[7, 4 - (bits == 16)], [3, 2 - (bits == 16)]]
+        expect = [[7, 4 - (bits == 16)], [4 - (bits == 16), 2 - (bits == 16)]]
     elif fmt.startswith('bayer_bggr'):
-        expect = [[19, 10 - (bits == 16)], [9, 5 - (bits == 16)]]
+        expect = [[19, 10 - (bits == 16)], [10 - (bits == 16), 5 - (bits == 16)]]
     elif fmt.startswith('bayer_g'):
-        expect = [[37, 9], [9, 0]]
+        expect = [[38 - (bits == 16), 9], [9, 0]]
     else:
         assert isinstance(val, int)
         expect = [[val, val * 0], [val * 0, val * 0]]
