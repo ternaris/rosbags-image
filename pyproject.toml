@@ -16,6 +16,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering",
   "Typing :: Typed",
 ]
@@ -46,6 +47,16 @@ readme = "README.rst"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
+
+[project.urls]
+Homepage = "https://gitlab.com/ternaris/rosbags-image"
+Documentation = "https://ternaris.gitlab.io/rosbags-image"
+Source = "https://gitlab.com/ternaris/rosbags-image"
+Issues = "https://gitlab.com/ternaris/rosbags-image/issues"
+Changelog = "https://gitlab.com/ternaris/rosbags-image/-/blob/master/CHANGES.rst"
+
+
+[dependency-groups]
 dev = [
   "mypy",
   "pytest",
@@ -57,19 +68,13 @@ dev = [
   "sphinx-rtd-theme",
 ]
 
-[project.urls]
-Homepage = "https://gitlab.com/ternaris/rosbags-image"
-Documentation = "https://ternaris.gitlab.io/rosbags-image"
-Source = "https://gitlab.com/ternaris/rosbags-image"
-Issues = "https://gitlab.com/ternaris/rosbags-image/issues"
-Changelog = "https://gitlab.com/ternaris/rosbags-image/-/blob/master/CHANGES.rst"
-
 
 [tool.coverage]
 report.exclude_lines = [
   "pragma: no cover",
   "if TYPE_CHECKING:",
   "if __name__ == '__main__':",
+  "@overload",
 ]
 report.show_missing = true
 report.skip_covered = true
@@ -105,7 +110,6 @@ select = [
   "D413",
 ]
 ignore = [
-  "ANN101",
   "C901",
   "PLR0912",
   "PLR0913",
@@ -122,10 +126,9 @@ ignore = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 force-wrap-aliases = true
-known-first-party = ["rosbags"]
 
 [tool.ruff.lint.flake8-copyright]
-notice-rgx = "(?i)# (C)opyright 2020 - 2024 Ternaris\n# (S)PDX-License-Identifier: Apache-2.0"
+notice-rgx = "(?i)# (C)opyright 2020 - 2025 Ternaris\n# (S)PDX-License-Identifier: Apache-2.0"
 
 [tool.ruff.lint.flake8-quotes]
 avoid-escape = false
@@ -136,3 +139,5 @@ convention = "google"
 
 
 [tool.setuptools_scm]
+version_scheme = "only-version"
+local_scheme = "no-local-version"
