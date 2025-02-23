@@ -51,17 +51,26 @@ class Format(IntEnum):
     BGR = 2
     RGBA = 3
     BGRA = 4
-    YUV = 5
-    BAYER_RG = 6
-    BAYER_BG = 7
-    BAYER_GB = 8
-    BAYER_GR = 9
+    YUV_UYVY = 5
+    YUV_YUYV = 6
+    YUV_NV12 = 7
+    YUV_NV21 = 8
+    BAYER_RG = 9
+    BAYER_BG = 10
+    BAYER_GB = 11
+    BAYER_GR = 12
 
 
 CONVERSIONS: dict[tuple[Format, Format], int | None] = {
-    key: cast('int', getattr(cv2, f'COLOR_{n1}2{n2}{({"YUV": "_Y422"}).get(n1, "")}', None))
+    key: cast('int', getattr(cv2, name, None))
     for key in product(list(Format)[1:], list(Format)[1:])
-    if (n1 := key[0].name) == (n2 := key[1].name) or hasattr(cv2, f'COLOR_{n1}2{n2}')
+    if (
+        name := '_'
+        if (n1 := key[0].name.partition('_')) == (n2 := key[1].name.partition('_'))
+        else ''
+    )
+    or ((name := f'COLOR_{n1[0]}2{n2[0]}{n1[1]}{n1[2]}{n2[1]}{n2[2]}') and hasattr(cv2, name))
+    or ((name := f'COLOR_{n1[0]}{n1[1]}{n1[2]}2{n2[0]}{n2[1]}{n2[2]}') and hasattr(cv2, name))
 }
 
 
@@ -81,7 +90,12 @@ ENCODINGMAP = {
     'bayer_bggr8': (8, Format.BAYER_RG, 'uint8', 1),
     'bayer_gbrg8': (8, Format.BAYER_GR, 'uint8', 1),
     'bayer_grbg8': (8, Format.BAYER_GB, 'uint8', 1),
-    'yuv422': (8, Format.YUV, 'uint8', 2),
+    'uyvy': (8, Format.YUV_UYVY, 'uint8', 2),
+    'yuv422': (8, Format.YUV_UYVY, 'uint8', 2),
+    'yuyv': (8, Format.YUV_YUYV, 'uint8', 2),
+    'yuv422_yuy2': (8, Format.YUV_YUYV, 'uint8', 2),
+    'nv12': (8, Format.YUV_NV12, 'uint8', 1),
+    'nv21': (8, Format.YUV_NV21, 'uint8', 1),
     'bgr8': (8, Format.BGR, 'uint8', 3),
     'rgb8': (8, Format.RGB, 'uint8', 3),
     'bgra8': (8, Format.BGRA, 'uint8', 4),

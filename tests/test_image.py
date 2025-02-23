@@ -76,7 +76,12 @@ FORMATS = [
     'bayer_bggr16',
     'bayer_gbrg16',
     'bayer_grbg16',
+    'uyvy',
     'yuv422',
+    'yuyv',
+    'yuv422_yuy2',
+    'nv12',
+    'nv21',
 ]
 
 HEADER = Header(Time(0, 0), '')
@@ -99,15 +104,15 @@ def get_desc(name: str) -> tuple[int, int, bool]:
         channels = 4
     elif name[0:3] in {'rgb', 'bgr'} or name.endswith('C3'):
         channels = 3
-    elif name.endswith('C2') or name == 'yuv422':
+    elif name.endswith('C2') or name.startswith(('uy', 'yu')):
         channels = 2
-    elif name.startswith(('mono', 'bayer_')) or name[-1] in 'USF1':
+    elif name.startswith(('mono', 'bayer_', 'nv')) or name[-1] in 'USF1':
         channels = 1
     else:
         msg = f'Unexpected encoding {name}'
         raise ValueError(msg)
 
-    if name.startswith('8') or name.endswith('8') or name == 'yuv422':
+    if name.startswith(('8', 'uy', 'yu', 'nv')) or name.endswith('8'):
         bits = 8
     elif name.startswith('16') or name.endswith('16'):
         bits = 16
@@ -193,13 +198,18 @@ def test_convert_mono(fmt: str) -> None:
     image, bits, val = generate_image(fmt)
 
     # unsupported auto conversions
-    if fmt[-2:] in {'C2', 'C3', 'C4', '22'}:
+    if fmt[-2:] in {'C2', 'C3', 'C4'}:
         with pytest.raises(ImageConversionError):
             _ = image_to_cvimage(image, 'mono8')
         return
 
     img = image_to_cvimage(image, 'mono8')
-    assert img.shape == (image.height, image.width)
+    shape = (
+        (image.height // 3 * 2, image.width)
+        if fmt.startswith('nv')
+        else (image.height, image.width)
+    )
+    assert img.shape == shape
 
     # apply CCIR 601
     if fmt.startswith('rgb'):
@@ -221,6 +231,10 @@ def test_convert_mono(fmt: str) -> None:
         expect = [[19, 10 - (bits == 16)], [10 - (bits == 16), 5 - (bits == 16)]]
     elif fmt.startswith('bayer_g'):
         expect = [[38 - (bits == 16), 9], [9, 0]]
+    elif fmt in {'uyvy', 'yuv422'}:
+        expect = [[0, 0], [0, 0]]
+    elif fmt in {'yuyv', 'yuv422_yuy2', 'nv12', 'nv21'}:
+        expect = [[64, 0], [0, 0]]
     else:
         assert isinstance(val, int)
         expect = [[val, val * 0], [val * 0, val * 0]]
@@ -240,7 +254,12 @@ def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
         return
 
     img = image_to_cvimage(image, 'bgr8')
-    assert img.shape == (image.height, image.width, 3)
+    shape = (
+        (image.height // 3 * 2, image.width, 3)
+        if fmt.startswith('nv')
+        else (image.height, image.width, 3)
+    )
+    assert img.shape == shape
 
     # flip rgb, remove alpha, expand mono
     if fmt.startswith('rgb'):
@@ -273,8 +292,10 @@ def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
             [[0, 64 - (bits == 16), 0], [0, 16 - (bits == 16), 0]],
             [[0, 16 - (bits == 16), 0], [0, 0, 0]],
         ]
-    elif fmt == 'yuv422':
+    elif fmt in {'uyvy', 'yuv422'}:
         expect = [[[0, 102, 0], [0, 154, 0]], [[0, 154, 0], [0, 154, 0]]]
+    elif fmt in {'yuyv', 'yuv422_yuy2', 'nv12', 'nv21'}:
+        expect = [[[0, 210, 0], [0, 154, 0]], [[0, 154, 0], [0, 154, 0]]]
     else:
         assert isinstance(val, np.ndarray)
         zero = cast('list[int]', np.multiply(val, 0).tolist())
@@ -295,7 +316,12 @@ def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
         return
 
     img = image_to_cvimage(image, 'bgr16')
-    assert img.shape == (image.height, image.width, 3)
+    shape = (
+        (image.height // 3 * 2, image.width, 3)
+        if fmt.startswith('nv')
+        else (image.height, image.width, 3)
+    )
+    assert img.shape == shape
 
     # flip rgb, remove alpha, expand mono
     if fmt.startswith('rgb'):
@@ -328,8 +354,10 @@ def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
             [[0, 16448 - (bits == 16) * 64, 0], [0, 4112 - (bits == 16) * 16, 0]],
             [[0, 4112 - (bits == 16) * 16, 0], [0, 0, 0]],
         ]
-    elif fmt == 'yuv422':
+    elif fmt in {'uyvy', 'yuv422'}:
         expect = [[[0, 26214, 0], [0, 39578, 0]], [[0, 39578, 0], [0, 39578, 0]]]
+    elif fmt in {'yuyv', 'yuv422_yuy2', 'nv12', 'nv21'}:
+        expect = [[[0, 53970, 0], [0, 39578, 0]], [[0, 39578, 0], [0, 39578, 0]]]
     else:
         assert isinstance(val, np.ndarray)
         zero = cast('list[int]', np.multiply(val, 0).tolist())
