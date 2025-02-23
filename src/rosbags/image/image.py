@@ -159,7 +159,10 @@ def convert_color(src: Imagebytes, src_color_space: str, dst_color_space: str) -
 
     if src_typestr != dst_typestr:
         if src_depth == 8 and dst_depth == 16:
-            return np.multiply(src.astype(dst_typestr, copy=False), 65535.0 / 255.0)
+            return cast(
+                'Imagebytes',
+                np.multiply(src.astype(dst_typestr, copy=False), 65535.0 / 255.0),
+            )
         if src_depth == 16 and dst_depth == 8:
             return np.multiply(src, 255.0 / 65535.0).astype(dst_typestr, copy=False)
         return src.astype(dst_typestr, copy=False)
