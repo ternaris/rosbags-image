@@ -3,6 +3,12 @@
 Changes
 =======
 
+0.10.2 - 2025-02-23
+-------------------
+
+- Support more YUV subsampling and planar formats
+
+
 0.10.1 - 2025-01-17
 -------------------
 
