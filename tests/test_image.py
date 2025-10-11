@@ -13,6 +13,12 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
+from rosbags.typesys.stores.latest import (
+    builtin_interfaces__msg__Time as Time,
+    sensor_msgs__msg__CompressedImage as CompressedImage,
+    sensor_msgs__msg__Image as Image,
+    std_msgs__msg__Header as Header,
+)
 
 from rosbags.image import (
     ImageConversionError,
@@ -20,12 +26,6 @@ from rosbags.image import (
     compressed_image_to_cvimage,
     image_to_cvimage,
     message_to_cvimage,
-)
-from rosbags.typesys.stores.latest import (
-    builtin_interfaces__msg__Time as Time,
-    sensor_msgs__msg__CompressedImage as CompressedImage,
-    sensor_msgs__msg__Image as Image,
-    std_msgs__msg__Header as Header,
 )
 
 FORMATS = [

@@ -11,14 +11,23 @@ from enum import IntEnum
 from itertools import product
 from typing import TYPE_CHECKING, cast
 
-import cv2
+try:
+    import cv2
+except ImportError as err:  # pragma: no cover
+    msg = (
+        'Missing optional dependency "cv2". '
+        'Install rosbags-image with the "opencv" or "opencv-headless" extra:\n\n'
+        '    pip install rosbags-image[opencv]\n'
+        "or add 'rosbags-image[opencv]' to your project dependencies."
+    )
+    raise ImportError(msg) from err
+
 import numpy as np
 
 if TYPE_CHECKING:
     from typing import TypeGuard
 
     from cv2.typing import MatLike
-
     from rosbags.typesys.stores.latest import (
         sensor_msgs__msg__CompressedImage as CompressedImage,
         sensor_msgs__msg__Image as Image,

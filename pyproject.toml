@@ -23,7 +23,6 @@ classifiers = [
 description = "Pure Python library to convert ros image message data from and to opencv2."
 dependencies = [
   "numpy",
-  "opencv-python-headless",
   "rosbags >= 0.9.20",
 ]
 dynamic = ["version"]
@@ -47,6 +46,8 @@ readme = "README.rst"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
+opencv = ["opencv-python"]
+opencv-headless = ["opencv-python-headless"]
 
 [project.urls]
 Homepage = "https://gitlab.com/ternaris/rosbags-image"
@@ -66,6 +67,8 @@ dev = [
   "sphinx",
   "sphinx-autodoc-typehints",
   "sphinx-rtd-theme",
+  # project specific
+  "opencv-python-headless",
 ]
 
 
