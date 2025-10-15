@@ -3,6 +3,15 @@
 Changes
 =======
 
+0.10.3 - 2025-10-15
+-------------------
+
+- Advertise Python 3.14 compatibility
+- Do not hard depend on headless opencv `#2`_
+
+.. _#2: https://gitlab.com/ternaris/rosbags-image/-/issues/2
+
+
 0.10.2 - 2025-02-23
 -------------------
 
