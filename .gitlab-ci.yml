@@ -1,5 +1,5 @@
 variables:
-  IMAGE: "ghcr.io/astral-sh/uv:python3.14-bookworm"
+  IMAGE: "ghcr.io/astral-sh/uv:python3.14-trixie"
   UV_CACHE_DIR: $CI_PROJECT_DIR/.uv_cache
 
 
