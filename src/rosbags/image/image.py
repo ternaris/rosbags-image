@@ -229,7 +229,9 @@ def compressed_image_to_cvimage(
         OpenCV image.
 
     """
-    img: Imagebytes = cv2.imdecode(np.frombuffer(msg.data, np.uint8), cv2.IMREAD_ANYCOLOR)
+    img: Imagebytes | None = cv2.imdecode(np.frombuffer(msg.data, np.uint8), cv2.IMREAD_ANYCOLOR)
+    assert img is not None
+
     if color_space:
         return convert_color(img, 'bgr8', color_space)
     return img

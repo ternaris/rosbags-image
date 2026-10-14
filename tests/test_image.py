@@ -156,7 +156,14 @@ def generate_image(
     data[pxpos : pxpos + bits >> 8] = struct.pack(f'{">" if is_big else "<"}{ftype}', cval)
 
     # set remaining channels to 0, tests use this source value to check encoding conversions
-    val = cval if channels == 1 else np.array([cval] + [0] * (channels - 1))
+    val = (
+        cval
+        if channels == 1
+        else cast(
+            'np.ndarray[tuple[int, ...], np.dtype[np.uint8]]',
+            np.array([cval] + [0] * (channels - 1)),
+        )
+    )
 
     return (
         Image(
@@ -242,7 +249,7 @@ def test_convert_mono(fmt: str) -> None:
     np.testing.assert_array_equal(img[11:13, 15:17], np.array(expect))
 
 
-@pytest.mark.parametrize(('fmt', 'endian'), product(FORMATS, (False, True)))
+@pytest.mark.parametrize(('fmt', 'endian'), list(product(FORMATS, (False, True))))
 def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
     """Test with color format conversion to bgr8."""
     image, bits, val = generate_image(fmt, is_big=endian)
@@ -304,7 +311,7 @@ def test_convert_bgr8(fmt: str, *, endian: bool) -> None:
     np.testing.assert_array_equal(img[11:13, 15:17], expect)
 
 
-@pytest.mark.parametrize(('fmt', 'endian'), product(FORMATS, (False, True)))
+@pytest.mark.parametrize(('fmt', 'endian'), list(product(FORMATS, (False, True))))
 def test_convert_bgr16(fmt: str, *, endian: bool) -> None:
     """Test with color format conversion to bgr8."""
     image, bits, val = generate_image(fmt, is_big=endian)
