@@ -1,9 +1,9 @@
-# Copyright 2020 - 2025 Ternaris
+# Copyright 2020-2026 Ternaris
 # SPDX-License-Identifier: Apache-2.0
 """Sphinx Configuration."""
 
 project = 'Rosbags-image'
-copyright = '2020-2024, Ternaris'  # noqa: A001
+copyright = '2020-2026, Ternaris'  # noqa: A001
 author = 'Ternaris'
 
 autoapi_python_use_implicit_namespaces = True
